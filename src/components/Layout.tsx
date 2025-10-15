@@ -4,14 +4,19 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children }) => {
+function Layout({ children }: LayoutProps) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-purple-100 text-gray-800 font-sans">
-      <div className="w-full max-w-md p-6 bg-white rounded-lg shadow-lg">
-        {children}
-      </div>
-    </div>
+<div
+  className="min-h-screen bg-cover bg-center relative"
+  style={{ backgroundImage: "url('/background.png')" }}
+>
+  <div className="absolute inset-0 bg-blue-200/10"></div>
+
+  <main className="relative z-10">
+    {children}
+  </main>
+</div>
   );
-};
+}
 
 export default Layout;
