@@ -1,22 +1,27 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
+import { login } from '../api/auth';
 
 function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState(''); // 新增：错误信息状态
+  const [error, setError] = useState(''); 
+  const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
-    //handle login logic here
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // 假设登录失败，模拟一个错误（未来会从后端拿之后再改）
-    if (password !== '12345678') {
-      setError('Incorrect email or password'); // 设置错误提示
-    } else {
-      setError(''); // 清除错误提示（登录成功）
-      console.log('Logging in with:', email, password);
+    try {
+      const data = await login(email, password);
+      console.log('✅ 登录成功:', data);
+      localStorage.setItem("userId", data.user.id.toString());
+      localStorage.setItem('token', data.access_token); // 保存token
+      setError('');
+      navigate('/upload'); // 登录成功跳转页面
+    } catch (err) {
+      console.error('❌ 登录失败:', err);
+      setError('Incorrect email or password'); // 错误提示
     }
   };
 

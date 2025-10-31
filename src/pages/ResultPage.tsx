@@ -1,31 +1,43 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import axios from 'axios';
 
 function ResultPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [routeText, setRouteText] = useState('');
+  const token = localStorage.getItem('token');
 
-  // 假设从后端拿到推荐路线结果（mock 数据）
-  const recommendedRoute = [
-    { time: '09:00 - 10:30', place: 'The Met Museum', type: 'Must-Visit' },
-    { time: '11:00 - 12:00', place: 'Central Park Stroll', type: 'Landmark' },
-    { time: '12:15 - 13:30', place: 'Lunch at Joe\'s Shanghai (Chinese)', type: 'Food' },
-    { time: '14:00 - 15:30', place: 'MoMA - Modern Art Museum', type: 'Optional Visit' },
-  ];
-
-  const parkingRecommendation = {
-    name: '81st Street Parking Garage',
-    distance: '3 min walk from Met Museum',
-    cost: '$20/day'
-  };
+  useEffect(() => {
+    console.log("✅ location.state:", location.state);
+    // 从 preferences 页面跳转时带来的 state（route 文本）
+    if (location.state && location.state.generatedRoute) {
+      console.log("✅ 设置 routeText:", location.state.generatedRoute);
+      setRouteText(location.state.generatedRoute);
+    }
+  }, [location.state]);
 
   const handleBack = () => {
     navigate('/preferences');
   };
 
-  const handleSave = () => {
-    // TODO: 调用后端 API 保存这条推荐结果
-    alert('Route saved successfully!');
+  const handleSave = async () => {
+    try {
+      await axios.post(
+        'http://localhost:8000/save-route',
+        { route_text: routeText },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      alert('Route saved successfully!');
+    } catch (err) {
+      console.error('Failed to save route:', err);
+      alert('Failed to save route.');
+    }
   };
 
   return (
@@ -37,27 +49,13 @@ function ResultPage() {
           </h2>
 
           <p className="text-gray-700 mb-6 text-center">
-            Based on your preferences, we’ve created a recommended itinerary for your day!
+            Based on your preferences, here is your recommended route:
           </p>
 
-          {/* 行程表 */}
-          <div className="space-y-4">
-            {recommendedRoute.map((item, idx) => (
-              <div key={idx} className="border-l-4 pl-4 border-blue-500 bg-white p-3 rounded shadow-sm">
-                <p className="text-sm text-gray-500">{item.time}</p>
-                <p className="text-lg font-semibold text-gray-800">{item.place}</p>
-                <p className="text-sm text-gray-600 italic">{item.type}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* 停车推荐 */}
-          <div className="mt-8 bg-gray-100 p-4 rounded">
-            <h3 className="text-lg font-bold mb-2">🚗 Parking Recommendation</h3>
-            <p><strong>{parkingRecommendation.name}</strong></p>
-            <p>{parkingRecommendation.distance}</p>
-            <p>{parkingRecommendation.cost}</p>
-          </div>
+          {/* 推荐路线内容 */}
+          <pre className="whitespace-pre-wrap text-gray-800 bg-gray-50 p-4 rounded shadow">
+            {routeText}
+          </pre>
 
           {/* 按钮区 */}
           <div className="mt-8 flex justify-between">
@@ -80,5 +78,4 @@ function ResultPage() {
     </Layout>
   );
 }
-
 export default ResultPage;

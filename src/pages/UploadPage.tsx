@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
 import { useNavigate } from 'react-router-dom';
-
+import { uploadBookmarks } from "../api/auth";
 function UploadPage() {
   const [hasPreviousUpload, setHasPreviousUpload] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const navigate = useNavigate();
-
+  console.log("🪪 当前用户 userId:", localStorage.getItem("userId"));
   // 模拟检查用户是否上传过收藏夹（等后端接口完善后可替换）
   useEffect(() => {
     const checkPreviousUpload = async () => {
@@ -14,9 +14,10 @@ function UploadPage() {
         const userId = localStorage.getItem('userId'); // 假设你把当前用户 id 存在 localStorage
         if (!userId) return;
 
-        // 模拟 API 请求（真实项目中你会请求你的后端）
-        const response = await fetch(`/api/check-bookmarks/${userId}`);
+        // API 请求 请求后端检查是否有历史上传
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/check-bookmarks/${userId}`);
         const data = await response.json();
+        console.log("📦 Check bookmark response:", data); 
 
         setHasPreviousUpload(data.exists); // true 或 false
       } catch (error) {
@@ -36,29 +37,20 @@ function UploadPage() {
     }
   };
 
-  const handleUpload = () => {
-    if (!selectedFile) return;
+  const handleUpload = async () => {
+  if (!selectedFile) return;
 
-    // TODO: 将文件发送到后端处理
-    const formData = new FormData();
-    formData.append('file', selectedFile);
+  try {
+    const res = await uploadBookmarks(selectedFile); // ✅ 调用封装好的 API 方法
+    console.log("✅ Upload success:", res);
 
-    fetch('/api/upload-bookmarks', {
-      method: 'POST',
-      body: formData,
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error('Upload failed');
-        return res.json();
-      })
-      .then((data) => {
-        console.log('Upload success:', data);
-        navigate('/preferences'); // 上传成功跳转到 preferences 页面
-      })
-      .catch((err) => {
-        console.error('Upload error:', err);
-      });
-  };
+    // 上传成功跳转到 preferences 页面
+    navigate('/preferences');
+  } catch (error) {
+    console.error("❌ Upload failed:", error);
+    alert("Upload failed. Please check your file and try again.");
+  }
+};
 
   const handleUsePrevious = () => {
     navigate('/preferences'); // 直接跳转使用历史收藏夹

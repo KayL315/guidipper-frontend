@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
+import { useNavigate } from 'react-router-dom';
+import { generateRoute } from '../api/auth';
+import axios from 'axios';
 
 function PreferencesPage() {
+  const navigate = useNavigate();
   const [centerLandmark, setCenterLandmark] = useState('');
   const [mustVisit, setMustVisit] = useState('');
   const [startTime, setStartTime] = useState('');
@@ -26,21 +30,42 @@ function PreferencesPage() {
     }
   };
 
-  const handleSubmit = () => {
-    const preferences = {
-      centerLandmark,
-      mustVisit: mustVisit.split(',').map((p) => p.trim()), // 拆分为数组
-      startTime,
-      endTime,
-      transportModes,
-      allowAlcohol,
-      preferredCuisine,
-      maxCommuteTime: parseInt(maxCommuteTime),
-    };
-
-    console.log('User Preferences:', preferences);
-    // TODO: send preferences to backend
+  const handleSubmit = async () => {
+  const token = localStorage.getItem('token');
+  const preferences = {
+    centerLandmark,
+    mustVisit: mustVisit.split(',').map((p) => p.trim()),
+    startTime,
+    endTime,
+    transportModes,
+    allowAlcohol,
+    preferredCuisine,
+    maxCommuteTime: parseInt(maxCommuteTime),
   };
+
+  try {
+    const res = await axios.post(
+      'http://localhost:8000/generate-route',
+      preferences,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    console.log("✅ 后端返回：", res);
+    const resultText = res.data.generated_route;
+    console.log("✅ 提取到的路线：", resultText);
+
+    // 跳转到结果页并传递路线文本
+    navigate('/result', { state: { generatedRoute: resultText } });
+    console.log("✅ 跳转传递的参数：", resultText);
+  } catch (err) {
+    console.error('Failed to generate route:', err);
+    alert('Failed to generate route');
+  }
+  
+};
 
   return (
     <Layout>

@@ -1,16 +1,17 @@
 import React, { useState } from 'react'; // 引入React和useState，用于组件和状态管理
-import { Link } from 'react-router-dom'; // 用于跳转到 login 页面
+import { Link, useNavigate } from 'react-router-dom'; // 用于跳转到 login 页面
 import Layout from '../components/Layout'; // 公共布局组件，包含背景图等页面结构
+import { signup } from '../api/auth';
 
 function SignupPage() {
-  // 创建三个状态变量：email、password 和 confirmPassword
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState(''); // 错误提示信息状态（用于显示密码不匹配等）
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   // 提交表单的处理函数
-  const handleSignup = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); // 阻止默认表单提交行为
 
     // 简单的前端校验：密码至少8位 & 确认密码匹配
@@ -27,8 +28,17 @@ function SignupPage() {
     // 清空错误
     setError('');
 
-    // TODO: 这里将来调用后端 API（POST /signup）注册
-    console.log('Signing up with:', email, password);
+    try {
+      const data = await signup(email, password);
+      console.log('✅ 注册成功:', data);
+      if (data.token) {
+        localStorage.setItem('token', data.token); // ✅ 如果 token 存在再存
+      }
+      navigate('/login'); // 注册成功跳转登录页
+    } catch (err) {
+      console.error('❌ 注册失败:', err);
+      setError('Email already exists or server error.');
+    }
   };
 
   return (
