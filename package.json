@@ -5,7 +5,6 @@
   "dependencies": {
     "@types/jest": "^27.5.2",
     "@types/node": "^16.18.126",
-    "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "axios": "^1.13.1",
     "react": "^18.2.0",
@@ -40,6 +39,7 @@
     ]
   },
   "devDependencies": {
+    "@types/react": "^19.2.2",
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.1"
