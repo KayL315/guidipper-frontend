@@ -7,8 +7,14 @@ function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+
+  const closeModal = () => {
+    setShowModal(false);
+    navigate('/login'); // 关闭提示框后总是跳转到登录页
+  };
 
   // 提交表单的处理函数
   const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -34,7 +40,7 @@ function SignupPage() {
       if (data.token) {
         localStorage.setItem('token', data.token); // ✅ 如果 token 存在再存
       }
-      navigate('/login'); // 注册成功跳转登录页
+      setShowModal(true); // 提示框注册成功
     } catch (err) {
       console.error('❌ 注册失败:', err);
       setError('Email already exists or server error.');
@@ -110,6 +116,27 @@ function SignupPage() {
             </Link>
           </p>
         </div>
+
+        {/* 注册成功提示框 */}
+        {showModal && (
+          <div
+            onClick={closeModal} // 点击背景关闭
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          >
+            <div
+              onClick={(e) => e.stopPropagation()} // 防止点击内容区也触发关闭
+              className="bg-white rounded-2xl shadow-2xl w-80 p-6 text-center"
+            >
+              <h2 className="text-lg font-semibold mb-3 text-gray-800">🎉 Registration Successful 🎉</h2>
+              <button
+                onClick={closeModal}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
+              >
+                Login Now
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );
