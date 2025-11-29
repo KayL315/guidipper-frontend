@@ -5,20 +5,23 @@ import axios from 'axios';
 
 function PreferencesPage() {
   const navigate = useNavigate();
-  const [centerLandmark, setCenterLandmark] = useState('');
+
+  const [startPoint, setStartPoint] = useState('');
   const [mustVisit, setMustVisit] = useState('');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [transportModes, setTransportModes] = useState<string[]>([]);
   const [allowAlcohol, setAllowAlcohol] = useState(true);
   const [preferredCuisine, setPreferredCuisine] = useState<string[]>([]);
-  const [maxCommuteTime, setMaxCommuteTime] = useState(''); // 单段通勤时间
+  const [maxCommuteTime, setMaxCommuteTime] = useState('');
 
   // 时间错误状态（左对齐红色显示）
   const [timeError, setTimeError] = useState('');
-
-  // 新增：时间错误弹窗
+  // 时间错误弹窗
   const [showTimeModal, setShowTimeModal] = useState(false);
+
+  // 生成路线 loading
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // 自动禁用饮酒选项
   useEffect(() => {
@@ -36,7 +39,6 @@ function PreferencesPage() {
   };
 
   const validateTimeRange = (start: string, end: string) => {
-    // 只要有一个没填，就先不报错
     if (!start || !end) {
       setTimeError('');
       setShowTimeModal(false);
@@ -60,13 +62,19 @@ function PreferencesPage() {
   };
 
   const handleSubmit = async () => {
-    // 兜底校验：防止极端情况下未触发 change/blur
+    // 兜底校验
     if (!validateTimeRange(startTime, endTime)) return;
 
     const token = localStorage.getItem('token');
+
+    // 注意：这里发给后端的字段名是 startPoint
+    // 如果你后端还在用 centerLandmark，请改成：{ centerLandmark: startPoint, ... }
     const preferences = {
-      centerLandmark,
-      mustVisit: mustVisit.split(',').map((p) => p.trim()),
+      startPoint,
+      mustVisit: mustVisit
+        .split(',')
+        .map((p) => p.trim())
+        .filter(Boolean),
       startTime,
       endTime,
       transportModes,
@@ -76,25 +84,41 @@ function PreferencesPage() {
     };
 
     try {
+      setIsGenerating(true);
+
       const res = await axios.post('http://localhost:8000/generate-route', preferences, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      console.log('✅ 后端返回：', res);
+
       const resultText = res.data.generated_route;
-      console.log('✅ 提取到的路线：', resultText);
-      // 跳转到结果页并传递路线文本
       navigate('/result', { state: { generatedRoute: resultText } });
-      console.log('✅ 跳转传递的参数：', resultText);
     } catch (err) {
       console.error('Failed to generate route:', err);
       alert('Failed to generate route');
+    } finally {
+      setIsGenerating(false);
     }
   };
 
   return (
     <Layout>
+      {/* 生成中全屏 Loading Overlay */}
+      {isGenerating && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-300 border-t-blue-600" />
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Generating your itinerary...</h3>
+                <p className="text-sm text-gray-600">This may take a few seconds.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 时间错误弹窗 */}
       {showTimeModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
@@ -120,19 +144,20 @@ function PreferencesPage() {
         <div className="max-w-2xl w-full bg-white/70 backdrop-blur-md p-8 rounded-xl shadow-lg space-y-6">
           <h2 className="text-2xl font-bold text-center text-gray-900">Your Trip Preferences</h2>
 
-          {/* 中心地标 */}
+          {/* Start Point */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Central Landmark</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Start Point</label>
             <input
               type="text"
-              value={centerLandmark}
-              onChange={(e) => setCenterLandmark(e.target.value)}
+              value={startPoint}
+              onChange={(e) => setStartPoint(e.target.value)}
               placeholder="e.g., Golden Gate Bridge"
               className="w-full border px-4 py-2 rounded"
+              disabled={isGenerating}
             />
           </div>
 
-          {/* 必去景点（用户输入） */}
+          {/* 必去景点 */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Must-Visit Places (separate by commas)
@@ -143,6 +168,7 @@ function PreferencesPage() {
               onChange={(e) => setMustVisit(e.target.value)}
               placeholder="e.g., Palace Museum, Temple of Heaven"
               className="w-full border px-4 py-2 rounded"
+              disabled={isGenerating}
             />
           </div>
 
@@ -156,10 +182,10 @@ function PreferencesPage() {
                 onChange={(e) => {
                   const next = e.target.value;
                   setStartTime(next);
-                  // startTime 变化时，也顺便用当前 endTime 立即复查
                   validateTimeRange(next, endTime);
                 }}
                 className="w-full border px-4 py-2 rounded"
+                disabled={isGenerating}
               />
             </div>
 
@@ -171,14 +197,11 @@ function PreferencesPage() {
                 onChange={(e) => {
                   const next = e.target.value;
                   setEndTime(next);
-                  // endTime 一变化就检查
                   validateTimeRange(startTime, next);
                 }}
-                onBlur={() => {
-                  // 结束输入/点击离开 endTime 时再检查一次
-                  validateTimeRange(startTime, endTime);
-                }}
+                onBlur={() => validateTimeRange(startTime, endTime)}
                 className="w-full border px-4 py-2 rounded"
+                disabled={isGenerating}
               />
             </div>
           </div>
@@ -196,6 +219,7 @@ function PreferencesPage() {
                     type="checkbox"
                     checked={transportModes.includes(mode)}
                     onChange={() => handleTransportChange(mode)}
+                    disabled={isGenerating}
                   />
                   {mode}
                 </label>
@@ -215,6 +239,7 @@ function PreferencesPage() {
               onChange={(e) => setMaxCommuteTime(e.target.value)}
               placeholder="e.g., 30"
               className="w-full border px-4 py-2 rounded"
+              disabled={isGenerating}
             />
           </div>
 
@@ -226,7 +251,7 @@ function PreferencesPage() {
                 type="checkbox"
                 checked={allowAlcohol}
                 onChange={() => setAllowAlcohol(!allowAlcohol)}
-                disabled={transportModes.includes('Car')}
+                disabled={isGenerating || transportModes.includes('Car')}
               />
               <span>{allowAlcohol ? 'Allowed' : 'Not Allowed'}</span>
               {transportModes.includes('Car') && (
@@ -245,6 +270,7 @@ function PreferencesPage() {
                 setPreferredCuisine(Array.from(e.target.selectedOptions, (option) => option.value))
               }
               className="w-full border px-4 py-2 rounded h-40"
+              disabled={isGenerating}
             >
               <option value="Chinese">Chinese</option>
               <option value="Japanese">Japanese</option>
@@ -268,9 +294,14 @@ function PreferencesPage() {
           {/* 提交按钮 */}
           <button
             onClick={handleSubmit}
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 mt-4"
+            disabled={isGenerating}
+            className={`w-full text-white py-2 rounded mt-4 flex items-center justify-center gap-2
+              ${isGenerating ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
           >
-            Save Preferences and Continue
+            {isGenerating && (
+              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/60 border-t-white" />
+            )}
+            {isGenerating ? 'Generating...' : 'Save Preferences and Continue'}
           </button>
         </div>
       </div>
