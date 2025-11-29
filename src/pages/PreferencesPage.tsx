@@ -81,7 +81,7 @@ function PreferencesPage() {
       transportModes,
       allowAlcohol,
       preferredCuisine,
-      maxCommuteTime: parseInt(maxCommuteTime),
+      maxCommuteTime: maxCommuteTime.trim() ? parseInt(maxCommuteTime, 10) : undefined,
     };
 
     try {
