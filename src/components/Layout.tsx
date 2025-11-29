@@ -14,8 +14,13 @@ function Layout({ children }: LayoutProps) {
 
   const handleLogout = () => {
     localStorage.removeItem('userId');
+    localStorage.removeItem('avatar_url');
     navigate('/');
   };
+
+  // 从 localStorage 取头像
+  const avatarUrl =
+    localStorage.getItem("avatar_url") || "/default-avatar.png";
 
   return (
     <div
@@ -28,30 +33,40 @@ function Layout({ children }: LayoutProps) {
       {/* 顶部导航栏 */}
       {showTopBar && (
         <nav className="fixed top-0 left-0 w-full z-50 bg-white/80 backdrop-blur-lg border-b border-gray-200 shadow-sm">
-        <div className="w-full flex justify-end items-center pr-10 py-3 space-x-6">
+          <div className="w-full flex justify-end items-center pr-10 py-3 space-x-6">
+            
+            {/* Create Plan */}
             <Link
-            to="/upload"
-            className="text-gray-800 hover:text-blue-600 transition font-medium"
+              to="/upload"
+              className="text-gray-800 hover:text-blue-600 transition font-medium"
             >
-            📝 Create Plan
+              📝 Create Plan
             </Link>
-            <Link
-            to="/profile"
-            className="text-gray-800 hover:text-blue-600 transition font-medium"
-            >
-            👤 Profile
+
+            {/* 头像 + Profile */}
+            <Link to="/profile" className="flex items-center space-x-2 group">
+              <img
+                src={avatarUrl}
+                alt="avatar"
+                className="w-8 h-8 rounded-full border border-gray-300 object-cover group-hover:ring-2 group-hover:ring-blue-400 transition"
+              />
+              <span className="text-gray-800 hover:text-blue-600 transition font-medium">
+                Profile
+              </span>
             </Link>
+
+            {/* Logout */}
             <button
-            onClick={handleLogout}
-            className="text-red-500 hover:text-red-700 transition font-medium"
+              onClick={handleLogout}
+              className="text-red-500 hover:text-red-700 transition font-medium"
             >
-            🚪 Logout
+              🚪 Logout
             </button>
-        </div>
+          </div>
         </nav>
       )}
 
-      {/* 页面内容：顶部留出空间 */}
+      {/* 页面内容 */}
       <main
         className={`relative z-10 ${
           showTopBar ? 'pt-28' : ''
