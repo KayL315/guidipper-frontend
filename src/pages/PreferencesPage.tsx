@@ -6,7 +6,9 @@ import axios from 'axios';
 function PreferencesPage() {
   const navigate = useNavigate();
 
-  const [startPoint, setStartPoint] = useState('');
+  // ✅ 改回：centerLandmark
+  const [centerLandmark, setCenterLandmark] = useState('');
+
   const [mustVisit, setMustVisit] = useState('');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
@@ -20,7 +22,7 @@ function PreferencesPage() {
   // 时间错误弹窗
   const [showTimeModal, setShowTimeModal] = useState(false);
 
-  // 生成路线 loading
+  // ✅ 生成路线 loading
   const [isGenerating, setIsGenerating] = useState(false);
 
   // 自动禁用饮酒选项
@@ -67,10 +69,9 @@ function PreferencesPage() {
 
     const token = localStorage.getItem('token');
 
-    // 注意：这里发给后端的字段名是 startPoint
-    // 如果你后端还在用 centerLandmark，请改成：{ centerLandmark: startPoint, ... }
     const preferences = {
-      startPoint,
+      // ✅ 这里也改回 centerLandmark
+      centerLandmark,
       mustVisit: mustVisit
         .split(',')
         .map((p) => p.trim())
@@ -104,7 +105,7 @@ function PreferencesPage() {
 
   return (
     <Layout>
-      {/* 生成中全屏 Loading Overlay */}
+      {/* ✅ 生成中全屏 Loading Overlay */}
       {isGenerating && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
@@ -144,13 +145,13 @@ function PreferencesPage() {
         <div className="max-w-2xl w-full bg-white/70 backdrop-blur-md p-8 rounded-xl shadow-lg space-y-6">
           <h2 className="text-2xl font-bold text-center text-gray-900">Your Trip Preferences</h2>
 
-          {/* Start Point */}
+          {/* ✅ 改回：Central Landmark */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Start Point</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Central Landmark</label>
             <input
               type="text"
-              value={startPoint}
-              onChange={(e) => setStartPoint(e.target.value)}
+              value={centerLandmark}
+              onChange={(e) => setCenterLandmark(e.target.value)}
               placeholder="e.g., Golden Gate Bridge"
               className="w-full border px-4 py-2 rounded"
               disabled={isGenerating}
