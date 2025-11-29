@@ -6,6 +6,7 @@ function UploadPage() {
   const [hasPreviousUpload, setHasPreviousUpload] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
   console.log("🪪 当前用户 userId:", localStorage.getItem("userId"));
   // 模拟检查用户是否上传过收藏夹（等后端接口完善后可替换）
   useEffect(() => {
