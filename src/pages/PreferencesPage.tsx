@@ -67,7 +67,7 @@ function PreferencesPage() {
     // 兜底校验
     if (!validateTimeRange(startTime, endTime)) return;
 
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('auth_token');
 
     const preferences = {
       // ✅ 这里也改回 centerLandmark

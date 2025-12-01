@@ -1,40 +1,55 @@
 import React, { useState, useEffect } from "react";
 import Layout from "../components/Layout";
 import Loader from "../components/Loader";
+import { useAuth } from "../contexts/AuthContext";
 
 function ProfilePage() {
-  const [user, setUser] = useState<any>(null);
+  const { user: authUser, token } = useAuth();
+  const [user, setUser] = useState<any>(authUser);
   const [routes, setRoutes] = useState<string[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
-
   const [newUsername, setNewUsername] = useState("");
   const [selectedAvatar, setSelectedAvatar] = useState<File | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const API = process.env.REACT_APP_API_URL;
-  const token = localStorage.getItem("token");
 
-  // 获取用户资料
   useEffect(() => {
-    fetch(`${API}/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setUser(data);
-        setNewUsername(data.username || "");
-      });
+    if (authUser) {
+      setUser(authUser);
+      setNewUsername(authUser.username || "");
+    }
+  }, [authUser]);
 
-    // 历史路线
-    fetch(`${API}/routes/${localStorage.getItem("user_id")}`)
-      .then((res) => res.json())
-      .then((data) => setRoutes(data.routes || []))
-      .catch(() => setRoutes([]));
-  }, []);
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!authUser?.id) return;
 
-  // 上传头像
+      try {
+        const response = await fetch(`${API}/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const userData = await response.json();
+        setUser(userData);
+        setNewUsername(userData.username || "");
+
+        fetch(`${API}/routes/${authUser.id}`)
+          .then((res) => res.json())
+          .then((data) => setRoutes(data.routes || []))
+          .catch(() => setRoutes([]));
+      } catch (error) {
+        console.error("Failed to fetch user data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, [authUser, token, API]);
+
   const uploadAvatar = async () => {
-    if (!selectedAvatar) return;
+    if (!selectedAvatar || !token) return;
 
     const formData = new FormData();
     formData.append("file", selectedAvatar);
@@ -48,14 +63,14 @@ function ProfilePage() {
     const data = await res.json();
     setUser({ ...user, avatar_url: data.avatar_url });
 
-    // 存到 localStorage 让 Navbar 显示头像
     localStorage.setItem("avatar_url", `${API}${data.avatar_url}`);
 
     alert("Avatar updated!");
   };
 
-  // 修改用户名
   const updateUsername = async () => {
+    if (!token) return;
+
     const formData = new FormData();
     formData.append("username", newUsername);
 
@@ -75,9 +90,8 @@ function ProfilePage() {
     if (file) setSelectedFile(file);
   };
 
-  // 上传书签
   const handleUpload = async () => {
-    if (!selectedFile) return;
+    if (!selectedFile || !token) return;
 
     const formData = new FormData();
     formData.append("file", selectedFile);
@@ -100,7 +114,8 @@ function ProfilePage() {
     }
   };
 
-  if (!user) return <Layout><Loader text="Loading Profile..." /></Layout>;
+  if (isLoading) return <Layout><Loader text="Loading Profile..." /></Layout>;
+  if (!user && !authUser) return <Layout><Loader text="Loading Profile..." /></Layout>;
 
   return (
     <Layout>

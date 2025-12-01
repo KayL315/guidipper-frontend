@@ -20,7 +20,7 @@ function ResultPage() {
   const [isLoadingRoute, setIsLoadingRoute] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('auth_token');
 
   const generatedRoute = useMemo(() => {
     const st: any = location.state;

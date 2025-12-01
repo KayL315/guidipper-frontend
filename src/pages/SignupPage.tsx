@@ -1,26 +1,42 @@
-import React, { useState } from 'react'; // 引入React和useState，用于组件和状态管理
-import { Link, useNavigate } from 'react-router-dom'; // 用于跳转到 login 页面
-import Layout from '../components/Layout'; // 公共布局组件，包含背景图等页面结构
-import { signup } from '../api/auth';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import Layout from '../components/Layout';
+import { useAuth } from '../contexts/AuthContext';
 
 function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [isPasswordConfirmed, setIsPasswordConfirmed] = useState(false);
+  const [isEmailValid, setIsEmailValid] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const { signup } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    setIsPasswordConfirmed(password === confirmPassword && password !== '');
+  }, [password, confirmPassword]);
+
+  useEffect(() => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    setIsEmailValid(emailRegex.test(email));
+  }, [email]);
 
   const closeModal = () => {
     setShowModal(false);
-    navigate('/login'); // 关闭提示框后总是跳转到登录页
+    navigate('/login');
   };
 
-  // 提交表单的处理函数
   const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); // 阻止默认表单提交行为
+    e.preventDefault();
 
-    // 简单的前端校验：密码至少8位 & 确认密码匹配
+    if (!email || !password || !confirmPassword) {
+      setError('Please fill in all fields');
+      return;
+    }
+
     if (password.length < 8) {
       setError('Password must be at least 8 characters long.');
       return;
@@ -31,19 +47,18 @@ function SignupPage() {
       return;
     }
 
-    // 清空错误
     setError('');
+    setIsLoading(true);
 
     try {
-      const data = await signup(email, password);
-      console.log('✅ 注册成功:', data);
-      if (data.token) {
-        localStorage.setItem('token', data.token); // ✅ 如果 token 存在再存
-      }
-      setShowModal(true); // 提示框注册成功
-    } catch (err) {
+      await signup(email, password);
+      console.log('✅ 注册成功');
+      setShowModal(true);
+    } catch (err: any) {
       console.error('❌ 注册失败:', err);
-      setError('Email already exists or server error.');
+      setError(err?.response?.data?.detail || 'Email already exists or server error.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -97,14 +112,18 @@ function SignupPage() {
                 required
                 className="mt-1 block w-full px-4 py-2 rounded border border-gray-300 focus:ring focus:ring-blue-200"
               />
+              {confirmPassword && !isPasswordConfirmed && (
+                <p className="text-xs text-red-500 mt-1">Passwords should match</p>
+              )}
             </div>
 
             {/* 提交按钮 */}
             <button
               type="submit"
-              className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
+              disabled={isLoading || !isEmailValid || !isPasswordConfirmed || password.length < 8}
+              className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 disabled:bg-gray-400"
             >
-              Sign Up
+              {isLoading ? 'Signing up...' : 'Sign Up'}
             </button>
           </form>
 
