@@ -1,27 +1,36 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
-import { login } from '../api/auth';
+import { useAuth } from '../contexts/AuthContext';
 
 function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState(''); 
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
+    if (!email || !password) {
+      setError('Please fill in all fields');
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+
     try {
-      const data = await login(email, password);
-      console.log('✅ 登录成功:', data);
-      localStorage.setItem("userId", data.user.id.toString());
-      localStorage.setItem('token', data.access_token); // 保存token
-      setError('');
-      navigate('/upload'); // 登录成功跳转页面
-    } catch (err) {
+      await login(email, password);
+      console.log('✅ 登录成功');
+      navigate('/upload');
+    } catch (err: any) {
       console.error('❌ 登录失败:', err);
-      setError('Incorrect email or password'); // 错误提示
+      setError(err?.response?.data?.detail || 'Incorrect email or password');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -70,9 +79,10 @@ function LoginPage() {
 
             <button
               type="submit"
-              className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
+              disabled={isLoading}
+              className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 disabled:bg-gray-400"
             >
-              Login
+              {isLoading ? 'Logging in...' : 'Login'}
             </button>
           </form>
 
