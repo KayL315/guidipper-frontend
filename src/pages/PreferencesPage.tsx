@@ -6,7 +6,7 @@ import axios from 'axios';
 function PreferencesPage() {
   const navigate = useNavigate();
 
-  // ✅ 改回：centerLandmark
+  //改回：centerLandmark
   const [centerLandmark, setCenterLandmark] = useState('');
 
   const [mustVisit, setMustVisit] = useState('');
@@ -17,15 +17,28 @@ function PreferencesPage() {
   const [preferredCuisine, setPreferredCuisine] = useState<string[]>([]);
   const [maxCommuteTime, setMaxCommuteTime] = useState('');
 
-  // 时间错误状态（左对齐红色显示）
+  //时间错误状态（左对齐红色显示）
   const [timeError, setTimeError] = useState('');
   // 时间错误弹窗
   const [showTimeModal, setShowTimeModal] = useState(false);
 
-  // ✅ 生成路线 loading
+  //生成路线 loading
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // 自动禁用饮酒选项
+  //NEW: 提示/错误/默认值记录
+  const DEFAULTS = {
+    centerLandmark: 'City Center',
+    startTime: '09:00',
+    endTime: '18:00',
+    transportModes: ['Walk'] as string[],
+    maxCommuteTime: 30, // minutes
+    preferredCuisine: ['Any'] as string[],
+  };
+
+  const [formError, setFormError] = useState<{ maxCommuteTime?: string }>({}); // ✅ NEW
+  const [defaultsApplied, setDefaultsApplied] = useState<string[]>([]); // ✅ NEW
+
+  //自动禁用饮酒选项
   useEffect(() => {
     if (transportModes.includes('Car')) {
       setAllowAlcohol(false);
@@ -64,24 +77,69 @@ function PreferencesPage() {
   };
 
   const handleSubmit = async () => {
-    // 兜底校验
-    if (!validateTimeRange(startTime, endTime)) return;
+    //NEW: 清空提示
+    setDefaultsApplied([]);
+    setFormError({});
+
+    const applied: string[] = [];
+
+    //NEW: 兜底默认值（用局部变量，避免 setState 异步影响请求）
+    const finalCenterLandmark = centerLandmark.trim() || (applied.push(`Central Landmark: ${DEFAULTS.centerLandmark}`), DEFAULTS.centerLandmark);
+    const finalStartTime = startTime || (applied.push(`Start Time: ${DEFAULTS.startTime}`), DEFAULTS.startTime);
+    const finalEndTime = endTime || (applied.push(`End Time: ${DEFAULTS.endTime}`), DEFAULTS.endTime);
+
+    const finalTransportModes =
+      transportModes.length > 0
+        ? transportModes
+        : (applied.push(`Preferred Transport: ${DEFAULTS.transportModes.join(', ')}`), DEFAULTS.transportModes);
+
+    const finalPreferredCuisine =
+      preferredCuisine.length > 0
+        ? (preferredCuisine.includes('Any') ? ['Any'] : preferredCuisine)
+        : (applied.push(`Preferred Cuisines: ${DEFAULTS.preferredCuisine.join(', ')}`), DEFAULTS.preferredCuisine);
+
+    //maxCommuteTime: 校验 + 默认
+    let finalMaxCommuteTime: number | undefined;
+    if (maxCommuteTime.trim()) {
+      const n = Number(maxCommuteTime);
+      if (!Number.isFinite(n) || n <= 0) {
+        setFormError({ maxCommuteTime: 'Please enter a positive number (e.g., 30).' });
+        return;
+      }
+      finalMaxCommuteTime = Math.floor(n);
+    } else {
+      finalMaxCommuteTime = DEFAULTS.maxCommuteTime;
+      applied.push(`Max Travel Time: ${DEFAULTS.maxCommuteTime} minutes`);
+    }
+
+    //NEW: 把默认值同步回 UI（用户看得到你替他补的）
+    if (!centerLandmark.trim()) setCenterLandmark(finalCenterLandmark);
+    if (!startTime) setStartTime(finalStartTime);
+    if (!endTime) setEndTime(finalEndTime);
+    if (transportModes.length === 0) setTransportModes(finalTransportModes);
+    if (preferredCuisine.length === 0) setPreferredCuisine(finalPreferredCuisine);
+    if (!maxCommuteTime.trim()) setMaxCommuteTime(String(finalMaxCommuteTime));
+
+    //NEW: 用默认值后的时间再校验
+    if (!validateTimeRange(finalStartTime, finalEndTime)) return;
+
+    //NEW: 显示“我帮你用默认值了”的提示条
+    if (applied.length > 0) setDefaultsApplied(applied);
 
     const token = localStorage.getItem('auth_token');
 
     const preferences = {
-      // ✅ 这里也改回 centerLandmark
-      centerLandmark,
+      centerLandmark: finalCenterLandmark,
       mustVisit: mustVisit
         .split(',')
         .map((p) => p.trim())
         .filter(Boolean),
-      startTime,
-      endTime,
-      transportModes,
+      startTime: finalStartTime,
+      endTime: finalEndTime,
+      transportModes: finalTransportModes,
       allowAlcohol,
-      preferredCuisine,
-      maxCommuteTime: maxCommuteTime.trim() ? parseInt(maxCommuteTime, 10) : undefined,
+      preferredCuisine: finalPreferredCuisine,
+      maxCommuteTime: finalMaxCommuteTime,
     };
 
     try {
@@ -105,7 +163,7 @@ function PreferencesPage() {
 
   return (
     <Layout>
-      {/* ✅ 生成中全屏 Loading Overlay */}
+      {/*生成中全屏 Loading Overlay */}
       {isGenerating && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
@@ -125,9 +183,7 @@ function PreferencesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
             <h3 className="text-lg font-semibold text-gray-900">Time Range Error</h3>
-            <p className="mt-2 text-sm text-gray-700">
-              {timeError || 'End time must be greater than start time.'}
-            </p>
+            <p className="mt-2 text-sm text-gray-700">{timeError || 'End time must be greater than start time.'}</p>
 
             <div className="mt-5 flex justify-end gap-2">
               <button
@@ -145,7 +201,19 @@ function PreferencesPage() {
         <div className="max-w-2xl w-full bg-white/70 backdrop-blur-md p-8 rounded-xl shadow-lg space-y-6">
           <h2 className="text-2xl font-bold text-center text-gray-900">Your Trip Preferences</h2>
 
-          {/* ✅ 改回：Central Landmark */}
+          {/* NEW: 默认值提示条 */}
+          {defaultsApplied.length > 0 && (
+            <div className="rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-900">
+              <div className="font-medium">Some fields were empty — applied defaults:</div>
+              <ul className="list-disc pl-5 mt-1">
+                {defaultsApplied.map((x) => (
+                  <li key={x}>{x}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Central Landmark */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Central Landmark</label>
             <input
@@ -156,6 +224,7 @@ function PreferencesPage() {
               className="w-full border px-4 py-2 rounded"
               disabled={isGenerating}
             />
+            <p className="text-xs text-gray-500 mt-1">Leave empty → default: {DEFAULTS.centerLandmark}</p>
           </div>
 
           {/* 必去景点 */}
@@ -188,6 +257,7 @@ function PreferencesPage() {
                 className="w-full border px-4 py-2 rounded"
                 disabled={isGenerating}
               />
+              <p className="text-xs text-gray-500 mt-1">Leave empty → default: {DEFAULTS.startTime}</p>
             </div>
 
             <div>
@@ -204,6 +274,7 @@ function PreferencesPage() {
                 className="w-full border px-4 py-2 rounded"
                 disabled={isGenerating}
               />
+              <p className="text-xs text-gray-500 mt-1">Leave empty → default: {DEFAULTS.endTime}</p>
             </div>
           </div>
 
@@ -226,6 +297,7 @@ function PreferencesPage() {
                 </label>
               ))}
             </div>
+            <p className="text-xs text-gray-500 mt-1">Select none → default: {DEFAULTS.transportModes.join(', ')}</p>
           </div>
 
           {/* 最长单段通勤时间 */}
@@ -242,6 +314,10 @@ function PreferencesPage() {
               className="w-full border px-4 py-2 rounded"
               disabled={isGenerating}
             />
+            {formError.maxCommuteTime && (
+              <div className="text-red-600 text-sm text-left mt-1">{formError.maxCommuteTime}</div>
+            )}
+            <p className="text-xs text-gray-500 mt-1">Leave empty → default: {DEFAULTS.maxCommuteTime} minutes</p>
           </div>
 
           {/* 饮酒偏好 */}
@@ -267,9 +343,15 @@ function PreferencesPage() {
             <select
               multiple
               value={preferredCuisine}
-              onChange={(e) =>
-                setPreferredCuisine(Array.from(e.target.selectedOptions, (option) => option.value))
-              }
+              onChange={(e) => {
+                const values = Array.from(e.target.selectedOptions, (option) => option.value);
+                //NEW: 如果选了 Any，就只保留 Any（避免同时 Any + 其它）
+                if (values.includes('Any') && values.length > 1) {
+                  setPreferredCuisine(['Any']);
+                } else {
+                  setPreferredCuisine(values);
+                }
+              }}
               className="w-full border px-4 py-2 rounded h-40"
               disabled={isGenerating}
             >
@@ -290,6 +372,7 @@ function PreferencesPage() {
             <p className="text-sm text-gray-500 mt-1">
               Hold Ctrl (Windows) or ⌘ Command (Mac) to select multiple.
             </p>
+            <p className="text-xs text-gray-500 mt-1">Select none → default: {DEFAULTS.preferredCuisine.join(', ')}</p>
           </div>
 
           {/* 提交按钮 */}
