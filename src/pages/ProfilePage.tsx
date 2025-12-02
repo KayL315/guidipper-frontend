@@ -3,10 +3,16 @@ import Layout from "../components/Layout";
 import Loader from "../components/Loader";
 import { useAuth } from "../contexts/AuthContext";
 
+type SavedRoute = {
+  title: string;
+  text: string;
+};
+
 function ProfilePage() {
   const { user: authUser, token } = useAuth();
   const [user, setUser] = useState<any>(authUser);
-  const [routes, setRoutes] = useState<string[]>([]);
+  const [routes, setRoutes] = useState<SavedRoute[]>([]);
+  const [selectedRoute, setSelectedRoute] = useState<SavedRoute | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const [newUsername, setNewUsername] = useState("");
@@ -36,7 +42,15 @@ function ProfilePage() {
 
         fetch(`${API}/routes/${authUser.id}`)
           .then((res) => res.json())
-          .then((data) => setRoutes(data.routes || []))
+          .then((data) => {
+            const list: SavedRoute[] = (data.routes || []).map(
+              (text: string, idx: number) => {
+                const title = deriveTitle(text, idx);
+                return { title, text };
+              }
+            );
+            setRoutes(list);
+          })
           .catch(() => setRoutes([]));
       } catch (error) {
         console.error("Failed to fetch user data:", error);
@@ -114,6 +128,16 @@ function ProfilePage() {
     }
   };
 
+  // 根据首行或序号生成一个简短标题
+  const deriveTitle = (text: string, idx: number) => {
+    const firstLine = text
+      .split("\n")
+      .map((l) => l.trim())
+      .find((l) => l.length > 0);
+    if (!firstLine) return `Itinerary ${idx + 1}`;
+    return firstLine.length > 60 ? `${firstLine.slice(0, 60)}…` : firstLine;
+  };
+
   if (isLoading) return <Layout><Loader text="Loading Profile..." /></Layout>;
   if (!user && !authUser) return <Layout><Loader text="Loading Profile..." /></Layout>;
 
@@ -173,14 +197,55 @@ function ProfilePage() {
           <div>
             <h3 className="text-xl font-semibold mb-2">📍 Past Generated Routes</h3>
 
-            {routes.length > 0 ? (
-              <ul className="list-disc pl-5 text-gray-800 space-y-1">
-                {routes.map((route, i) => (
-                  <li key={i}>{route}</li>
-                ))}
-              </ul>
-            ) : (
+            {routes.length === 0 && (
               <p className="text-sm text-gray-600">No routes generated yet.</p>
+            )}
+
+            {routes.length > 0 && (
+              <div className="space-y-3">
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {routes.map((route) => (
+                    <button
+                      key={route.title}
+                      onClick={() =>
+                        setSelectedRoute(
+                          selectedRoute?.text === route.text ? null : route
+                        )
+                      }
+                      className={`text-left rounded border px-3 py-2 shadow-sm transition hover:shadow-md ${
+                        selectedRoute?.text === route.text
+                          ? "border-blue-600 bg-blue-50"
+                          : "border-gray-200 bg-white"
+                      }`}
+                    >
+                      {route.title}
+                    </button>
+                  ))}
+                </div>
+
+                {selectedRoute ? (
+                  <div className="rounded border border-gray-200 bg-gray-50 p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <h4 className="font-semibold text-gray-800">
+                        {selectedRoute.title}
+                      </h4>
+                      <button
+                        onClick={() => setSelectedRoute(null)}
+                        className="text-sm text-blue-600 hover:underline"
+                      >
+                        Collapse
+                      </button>
+                    </div>
+                    <pre className="whitespace-pre-wrap text-gray-800">
+                      {selectedRoute.text}
+                    </pre>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600">
+                    Select a route to view details.
+                  </p>
+                )}
+              </div>
             )}
           </div>
 
