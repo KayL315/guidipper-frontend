@@ -2,24 +2,25 @@ import React, { useEffect, useState } from 'react';
 import Layout from '../components/Layout';
 import { useNavigate } from 'react-router-dom';
 import { uploadBookmarks } from "../api/auth";
+import { useAuth } from "../contexts/AuthContext";
+
 function UploadPage() {
   const [hasPreviousUpload, setHasPreviousUpload] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const navigate = useNavigate();
-  console.log("🪪 当前用户 userId:", localStorage.getItem("userId"));
-  // 模拟检查用户是否上传过收藏夹（等后端接口完善后可替换）
+  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+
   useEffect(() => {
     const checkPreviousUpload = async () => {
+      if (!user?.id) return;
+
       try {
-        const userId = localStorage.getItem('userId'); // 假设你把当前用户 id 存在 localStorage
-        if (!userId) return;
-
-        // API 请求 请求后端检查是否有历史上传
-        const response = await fetch(`${process.env.REACT_APP_API_URL}/check-bookmarks/${userId}`);
+        const response = await fetch(`${process.env.REACT_APP_API_URL}/check-bookmarks/${user.id}`);
         const data = await response.json();
-        console.log("📦 Check bookmark response:", data); 
+        console.log("📦 Check bookmark response:", data);
 
-        setHasPreviousUpload(data.exists); // true 或 false
+        setHasPreviousUpload(data.exists);
       } catch (error) {
         console.error('Failed to check previous upload:', error);
         setHasPreviousUpload(false);
@@ -27,7 +28,7 @@ function UploadPage() {
     };
 
     checkPreviousUpload();
-  }, []);
+  }, [user]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
