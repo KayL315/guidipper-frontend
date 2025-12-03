@@ -9,13 +9,12 @@ type SavedRoute = {
 };
 
 function ProfilePage() {
-  const { user: authUser, token } = useAuth();
+  const { user: authUser, token, updateUser } = useAuth();
   const [user, setUser] = useState<any>(authUser);
   const [routes, setRoutes] = useState<SavedRoute[]>([]);
   const [selectedRoute, setSelectedRoute] = useState<SavedRoute | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
-  const [newUsername, setNewUsername] = useState("");
   const [selectedAvatar, setSelectedAvatar] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -24,7 +23,6 @@ function ProfilePage() {
   useEffect(() => {
     if (authUser) {
       setUser(authUser);
-      setNewUsername(authUser.username || "");
     }
   }, [authUser]);
 
@@ -38,7 +36,6 @@ function ProfilePage() {
         });
         const userData = await response.json();
         setUser(userData);
-        setNewUsername(userData.username || "");
 
         fetch(`${API}/routes/${authUser.id}`)
           .then((res) => res.json())
@@ -76,26 +73,9 @@ function ProfilePage() {
 
     const data = await res.json();
     setUser({ ...user, avatar_url: data.avatar_url });
-
-    localStorage.setItem("avatar_url", `${API}${data.avatar_url}`);
+    updateUser({ avatar_url: data.avatar_url });
 
     alert("Avatar updated!");
-  };
-
-  const updateUsername = async () => {
-    if (!token) return;
-
-    const formData = new FormData();
-    formData.append("username", newUsername);
-
-    const res = await fetch(`${API}/update-username`, {
-      method: "PUT",
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
-    });
-
-    await res.json();
-    alert("Username updated!");
   };
 
   // 选择书签文件
@@ -168,23 +148,6 @@ function ProfilePage() {
               className="mt-2 bg-blue-500 text-white px-4 py-2 rounded"
             >
               Upload Avatar
-            </button>
-          </div>
-
-          {/* Username */}
-          <div>
-            <label className="font-semibold">Username</label>
-            <input
-              type="text"
-              value={newUsername}
-              onChange={(e) => setNewUsername(e.target.value)}
-              className="block w-full border p-2 rounded mt-1"
-            />
-            <button
-              onClick={updateUsername}
-              className="mt-2 bg-green-600 text-white px-4 py-2 rounded"
-            >
-              Save Username
             </button>
           </div>
 
