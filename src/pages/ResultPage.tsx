@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Layout from '../components/Layout';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+const API = process.env.REACT_APP_API_URL;
 
 function Spinner({ label = 'Loading...' }: { label?: string }) {
   return (
@@ -54,7 +55,7 @@ function ResultPage() {
     try {
       setIsSaving(true);
       await axios.post(
-        'http://localhost:8000/save-route',
+        `${API}/save-route`,
         { route_text: routeText },
         {
           headers: {

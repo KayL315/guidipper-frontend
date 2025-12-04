@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+const API = process.env.REACT_APP_API_URL;
 
 function PreferencesPage() {
   const navigate = useNavigate();
@@ -145,7 +146,7 @@ function PreferencesPage() {
     try {
       setIsGenerating(true);
 
-      const res = await axios.post('http://localhost:8000/generate-route', preferences, {
+      const res = await axios.post(`${API}//generate-route`, preferences, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
