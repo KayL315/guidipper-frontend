@@ -146,7 +146,7 @@ function PreferencesPage() {
     try {
       setIsGenerating(true);
 
-      const res = await axios.post(`${API}//generate-route`, preferences, {
+      const res = await axios.post(`${API}/generate-route`, preferences, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
