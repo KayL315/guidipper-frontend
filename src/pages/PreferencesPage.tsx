@@ -215,7 +215,7 @@ function PreferencesPage() {
 
           {/* Central Landmark */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Central Landmark</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Start Point</label>
             <input
               type="text"
               value={centerLandmark}
