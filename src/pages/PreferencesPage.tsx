@@ -27,7 +27,7 @@ function PreferencesPage() {
 
   //NEW: 提示/错误/默认值记录
   const DEFAULTS = {
-    centerLandmark: 'City Center',
+    centerLandmark: 'Golden Gate Bridge',
     startTime: '09:00',
     endTime: '18:00',
     transportModes: ['Walk'] as string[],
