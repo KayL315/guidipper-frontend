@@ -153,20 +153,9 @@ function PreferencesPage() {
       });
 
       const resultText = res.data.generated_route;
-      const routeId = res.data.id || res.data.generated_route_id;
-
-      if (routeId) {
-        navigate('/result', { state: { generatedRoute: resultText, generatedRouteId: routeId } });
-      } else {
-        const saveRes = await axios.post(
-          `${API}/save-route`,
-          { route_text: resultText },
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        navigate('/result', { state: { generatedRoute: resultText, generatedRouteId: saveRes.data.id } });
-      }
+      const routeId = res.data.id || res.data.generated_route_id || null;
+      // 不再自动保存，直接跳转结果页；用户点击结果页的 “Save This Plan” 才写入 profile
+      navigate('/result', { state: { generatedRoute: resultText, generatedRouteId: routeId } });
     } catch (err) {
       console.error('Failed to generate route:', err);
       alert('Failed to generate route');

@@ -2,14 +2,17 @@ import React, { useState, useEffect } from "react";
 import Layout from "../components/Layout";
 import Loader from "../components/Loader";
 import { useAuth } from "../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 type SavedRoute = {
+  id: number;
   title: string;
   text: string;
 };
 
 function ProfilePage() {
   const { user: authUser, token, updateUser } = useAuth();
+  const navigate = useNavigate();
   const [user, setUser] = useState<any>(authUser);
   const [routes, setRoutes] = useState<SavedRoute[]>([]);
   const [selectedRoute, setSelectedRoute] = useState<SavedRoute | null>(null);
@@ -28,7 +31,11 @@ function ProfilePage() {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      if (!authUser?.id) return;
+      if (!authUser?.id) {
+        // 未登录，停止 loading，后续展示登录提示
+        setIsLoading(false);
+        return;
+      }
 
       try {
         const response = await fetch(`${API}/me`, {
@@ -41,9 +48,11 @@ function ProfilePage() {
           .then((res) => res.json())
           .then((data) => {
             const list: SavedRoute[] = (data.routes || []).map(
-              (text: string, idx: number) => {
+              (item: any, idx: number) => {
+                const text = typeof item === "string" ? item : item.route_text || "";
+                const id = typeof item === "string" ? idx + 1 : item.id ?? idx + 1;
                 const title = deriveTitle(text, idx);
-                return { title, text };
+                return { id, title, text };
               }
             );
             setRoutes(list);
@@ -78,7 +87,7 @@ function ProfilePage() {
     alert("Avatar updated!");
   };
 
-  // 选择书签文件
+  // choose bookmark file
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) setSelectedFile(file);
@@ -108,7 +117,7 @@ function ProfilePage() {
     }
   };
 
-  // 根据首行或序号生成一个简短标题
+  // according to route text, derive a title
   const deriveTitle = (text: string, idx: number) => {
     const firstLine = text
       .split("\n")
@@ -118,8 +127,46 @@ function ProfilePage() {
     return firstLine.length > 60 ? `${firstLine.slice(0, 60)}…` : firstLine;
   };
 
+  const handleDeleteRoute = async (routeId: number) => {
+    if (!token) return;
+    const confirmed = window.confirm("Delete this saved route?");
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(`${API}/routes/${routeId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Delete failed");
+      setRoutes((prev) => prev.filter((r) => r.id !== routeId));
+      if (selectedRoute?.id === routeId) {
+        setSelectedRoute(null);
+      }
+    } catch (err) {
+      console.error("Failed to delete route:", err);
+      alert("Failed to delete route. Please try again.");
+    }
+  };
+
   if (isLoading) return <Layout><Loader text="Loading Profile..." /></Layout>;
-  if (!user && !authUser) return <Layout><Loader text="Loading Profile..." /></Layout>;
+  if (!authUser || !token) {
+    return (
+      <Layout>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="bg-white/80 backdrop-blur-md rounded-xl shadow-lg p-8 text-center space-y-4">
+            <h2 className="text-2xl font-bold text-gray-900">Please sign in</h2>
+            <p className="text-gray-600">You need to log in to view your profile and saved routes.</p>
+            <button
+              onClick={() => navigate("/login")}
+              className="inline-flex items-center justify-center rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+            >
+              Go to Login
+            </button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -129,7 +176,7 @@ function ProfilePage() {
           <h2 className="text-3xl font-bold text-center text-gray-900">
             Your Profile
           </h2>
-
+  
           {/* Avatar */}
           <div className="flex flex-col items-center">
             <img
@@ -140,7 +187,7 @@ function ProfilePage() {
               }
               alt="avatar"
               className="w-28 h-28 rounded-full object-cover border shadow mb-3"
-            />
+            /> 
 
             <input type="file" onChange={(e) => setSelectedAvatar(e.target.files?.[0] || null)} />
             <button
@@ -167,22 +214,35 @@ function ProfilePage() {
             {routes.length > 0 && (
               <div className="space-y-3">
                 <div className="grid gap-2 sm:grid-cols-2">
-                  {routes.map((route) => (
-                    <button
-                      key={route.title}
+                  {routes.map((route, idx) => (
+                    <div
+                      key={route.id ?? `${route.title}-${idx}`}
                       onClick={() =>
                         setSelectedRoute(
-                          selectedRoute?.text === route.text ? null : route
+                          selectedRoute?.id === route.id ? null : route
                         )
                       }
-                      className={`text-left rounded border px-3 py-2 shadow-sm transition hover:shadow-md ${
-                        selectedRoute?.text === route.text
+                      className={`rounded border px-3 py-2 shadow-sm transition cursor-pointer ${
+                        selectedRoute?.id === route.id
                           ? "border-blue-600 bg-blue-50"
                           : "border-gray-200 bg-white"
                       }`}
                     >
-                      {route.title}
-                    </button>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="text-left flex-1 hover:underline line-clamp-2">
+                          {route.title}
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteRoute(route.id);
+                          }}
+                          className="text-xs text-red-600 hover:underline shrink-0 ml-1"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
 
