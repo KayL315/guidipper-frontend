@@ -99,10 +99,11 @@ function ChatBox({ session, onSessionUpdate, routeText, onRouteUpdate, generated
 
       setMessages(prev => [...prev, response.data]);
 
-      if (response.data.diff_content) {
+      const diffFromApi = (response.data as any).diff_content || (response.data as any).diff;
+      if (diffFromApi) {
         setPendingDiff({
           messageId: response.data.id,
-          diffContent: response.data.diff_content,
+          diffContent: diffFromApi,
           chatMessage: response.data.content,
         });
       }
