@@ -47,11 +47,7 @@ function App() {
           />
           <Route
             path="/profile"
-            element={
-              <ProtectedRoute>
-                <ProfilePage />
-              </ProtectedRoute>
-            }
+            element={<ProfilePage />}
           />
         </Routes>
       </Router>

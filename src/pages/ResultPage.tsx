@@ -116,7 +116,7 @@ function ResultPage() {
 
     try {
       setIsSaving(true);
-      await axios.post(
+      const res = await axios.post(
         `${API}/save-route`,
         { route_text: routeText },
         {
@@ -125,6 +125,10 @@ function ResultPage() {
           },
         }
       );
+      // 保存成功后记录 ID，解锁 Chat
+      if (res.data?.id) {
+        setGeneratedRouteId(res.data.id);
+      }
       alert('Route saved successfully!');
     } catch (err) {
       console.error('Failed to save route:', err);
@@ -140,7 +144,7 @@ function ResultPage() {
     try {
       const response = await axios.post(
         `${API}/chat/sessions/${chatSession.id}/messages/${pendingDiff.messageId}/apply-diff`,
-        {},
+        { route_text: routeText },
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -211,28 +215,26 @@ function ResultPage() {
           </div>
         </div>
 
-        {generatedRouteId && (
-          <div className="w-full max-w-6xl mt-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <DiffViewer
-                diff={pendingDiff ? pendingDiff.diffContent : ''}
-                onApprove={handleApproveDiff}
-                onReject={handleRejectDiff}
+        <div className="w-full max-w-6xl mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <DiffViewer
+              diff={pendingDiff ? pendingDiff.diffContent : ''}
+              onApprove={handleApproveDiff}
+              onReject={handleRejectDiff}
+            />
+            <div>
+              <ChatBox
+                session={chatSession}
+                onSessionUpdate={setChatSession}
+                routeText={routeText}
+                onRouteUpdate={handleRouteUpdate}
+                generatedRouteId={generatedRouteId}
+                pendingDiff={pendingDiff}
+                setPendingDiff={setPendingDiff}
               />
-              <div>
-                <ChatBox
-                  session={chatSession}
-                  onSessionUpdate={setChatSession}
-                  routeText={routeText}
-                  onRouteUpdate={handleRouteUpdate}
-                  generatedRouteId={generatedRouteId}
-                  pendingDiff={pendingDiff}
-                  setPendingDiff={setPendingDiff}
-                />
-              </div>
             </div>
           </div>
-        )}
+        </div>
       </div>
     </Layout>
   );

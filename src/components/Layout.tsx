@@ -47,7 +47,7 @@ function Layout({ children }: LayoutProps) {
                 <span className="text-2xl">👤</span>
               )}
               <span className="text-gray-800 hover:text-blue-600 transition font-medium">
-                {user?.username || "Profile"}
+                Profile
               </span>
             </Link>
 

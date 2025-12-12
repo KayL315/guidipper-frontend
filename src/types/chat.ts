@@ -11,7 +11,7 @@ export interface ChatMessage {
 export interface ChatSession {
   id: number;
   user_id: number;
-  generated_route_id: number;
+  generated_route_id: number | null;
   created_at: string;
   updated_at: string;
   route_text?: string | null;
@@ -23,10 +23,12 @@ export interface ChatSessionWithRoute extends ChatSession {
 
 export interface SendMessageRequest {
   content: string;
+  route_text?: string;
 }
 
 export interface CreateSessionRequest {
-  generated_route_id: number;
+  generated_route_id?: number | null;
+  route_text?: string;
 }
 
 export interface AIResponse {
