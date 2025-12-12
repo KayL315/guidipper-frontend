@@ -15,7 +15,7 @@ interface ChatBoxProps {
   onSessionUpdate: (session: ChatSession | null) => void;
   routeText: string;
   onRouteUpdate: (newRouteText: string) => void;
-  generatedRouteId: number;
+  generatedRouteId: number | null;
   pendingDiff: PendingDiff | null;
   setPendingDiff: (diff: PendingDiff | null) => void;
 }
@@ -65,7 +65,7 @@ function ChatBox({ session, onSessionUpdate, routeText, onRouteUpdate, generated
     try {
       const response = await axios.post<ChatSession>(
         `${API}/chat/sessions`,
-        { generated_route_id: generatedRouteId },
+        { generated_route_id: generatedRouteId, route_text: routeText },
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -91,7 +91,7 @@ function ChatBox({ session, onSessionUpdate, routeText, onRouteUpdate, generated
     try {
       const response = await axios.post<ChatMessage>(
         `${API}/chat/sessions/${currentSession.id}/messages`,
-        { content: userMessage } as SendMessageRequest,
+        { content: userMessage, route_text: routeText } as SendMessageRequest,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
